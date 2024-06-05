@@ -1,8 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import firedrake as df
-import sys
-import time
 import os
 from scipy.ndimage import gaussian_filter
 import torch
@@ -54,7 +52,7 @@ def half_quad(order):
 
 class SpecFO(object):
     """ A class for solving the ansatz spectral in vertical-CG in horizontal Blatter-Pattyn equations """
-    def __init__(self, nx=75, ny=75, dx=100e3, dy=100e3):
+    def __init__(self, nx=100, ny=100, dx=125e3, dy=125e3):
 
         # Resolution        
         self.nx = nx
@@ -72,11 +70,9 @@ class SpecFO(object):
         # Standard CG function space
         self.Q_cg = df.FunctionSpace(mesh, 'CG', 1)
 
-
         self.one = df.Function(self.Q_cg)
         self.one.assign(1.0)
         self.area = df.assemble(self.one*df.dx)
-        print(self.area)
 
         self.build_variables()
         self.build_forms()
@@ -235,7 +231,7 @@ class SpecFO(object):
         vi = VerticalIntegrator(points,weights)
 
         # Basal shear stress (note minimum effective pressure ~1m head)
-        tau_bx = -beta2*N**p*abs((u(1)**2 + v(1)**2)+ 1e-2)**((q-1)/2.)*u(1)
+        tau_bx = -beta2*N**p*abs((u(1)**2 + v(1)**2) + 1e-2)**((q-1)/2.)*u(1)
         tau_by = -beta2*N**p*abs((u(1)**2 + v(1)**2) + 1e-2)**((q-1)/2.)*v(1)
 
         # weak form residuals for BP approximation.
