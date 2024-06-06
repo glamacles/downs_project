@@ -1,10 +1,15 @@
-import firedrake as fd
-import numpy as np
+import os
+import sys
 import matplotlib.pyplot as plt
+os.environ['OMP_NUM_THREADS'] = '1'
+sys.path.append('../model/')
+import numpy as np
+import firedrake as fd
 from model import SpecFO
 
 """
 Generate randomized synthetic ice sheets and solve for velocity.
+This script is used to generate training data for the emulator. 
 """
 
 model = SpecFO()
@@ -14,7 +19,7 @@ N = 3000
 # Max elevation ranges from 1500 - 4000 m
 S0 = np.random.uniform(1500., 4000., N)
 # Random length scale parameter for the bed
-sigmas = np.random.uniform(5., 15., N)
+sigmas = np.random.uniform(5., 20., N)
 # This randomizes the location of the ice sheet in the domain
 mid_offsets = 5000.*np.random.randn(N,2)
 
@@ -82,4 +87,4 @@ for i in range(N):
 # Save all the training data
 data = np.array(data)
 print(data.shape)
-np.save('data.npy', data)
+np.save('solution_data/data.npy', data)

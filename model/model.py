@@ -52,7 +52,7 @@ def half_quad(order):
 
 class SpecFO(object):
     """ A class for solving the ansatz spectral in vertical-CG in horizontal Blatter-Pattyn equations """
-    def __init__(self, nx=100, ny=100, dx=125e3, dy=125e3):
+    def __init__(self, nx=100, ny=100, dx=150e3, dy=150e3):
 
         # Resolution        
         self.nx = nx
@@ -95,9 +95,10 @@ class SpecFO(object):
             rho_w=1000.,  
             eps_reg=1e-5,
             Be=464158, # Ice softness
+            #Be=500000.,
             p=1, 
             q=1, 
-            beta2=2e-2,
+            beta2=1e-1,
         ):
 
         self.n = df.Constant(n)                    
@@ -172,7 +173,7 @@ class SpecFO(object):
 
 
         # For now just assume 0 water pressure
-        N = self.N = rho_i*g*H
+        N = self.N = 0.1*rho_i*g*H 
 
         def dsdx(s):
             return 1./H*(S.dx(0) - s*H.dx(0))
@@ -231,15 +232,15 @@ class SpecFO(object):
         vi = VerticalIntegrator(points,weights)
 
         # Basal shear stress (note minimum effective pressure ~1m head)
-        tau_bx = -beta2*N**p*abs((u(1)**2 + v(1)**2) + 1e-2)**((q-1)/2.)*u(1)
-        tau_by = -beta2*N**p*abs((u(1)**2 + v(1)**2) + 1e-2)**((q-1)/2.)*v(1)
+        tau_bx = -beta2*N*u(1)
+        tau_by = -beta2*N*v(1)
 
         # weak form residuals for BP approximation.
         R_u_body = (- vi.intz(membrane_xx) - vi.intz(membrane_xy) - vi.intz(shear_xz) + tau_bx*lamda_x(1) - vi.intz(tau_dx))*df.dx
         R_v_body = (- vi.intz(membrane_yx) - vi.intz(membrane_yy) - vi.intz(shear_yz) + tau_by*lamda_y(1) - vi.intz(tau_dy))*df.dx
 
         # Residual
-        self.R = -(R_u_body + R_v_body)
+        self.R = (R_u_body + R_v_body)
 
         # Set up the solver
         self.problem = df.NonlinearVariationalProblem(self.R, self.U)
@@ -269,6 +270,23 @@ class SpecFO(object):
         self.set_field(self.U.sub(2), U[2,:,:])
         self.set_field(self.U.sub(3), U[3,:,:])
 
+    """
+    Get the velocity in a nice format for plotting.
+    """
+    def get_velocity(self):
+        # Vertically averaged velocity
+        ubar0 = self.get_field(self.U.sub(0))
+        ubar1 = self.get_field(self.U.sub(1))
+
+        udef0 = self.get_field(self.U.sub(2))
+        udef1 = self.get_field(self.U.sub(3))
+
+        # Surface velocity
+        s0 = ubar0-(5./4.)*udef0
+        s1 = ubar1-(5./4.)*udef1
+
+        return ubar0, ubar1, udef0, udef1, s0, s1
+    
 
     """
     Get the gradient of loss w.r.t. velocity
@@ -301,7 +319,7 @@ class SpecFO(object):
         # Surface elevation
         p_mid = np.array([xs.mean(), ys.mean()]) + mid_offset
         d = np.linalg.norm(np.stack([xx, yy]) - p_mid[:,np.newaxis, np.newaxis], axis=0)
-        S = S0*np.sqrt(np.maximum(1. - d/50e3, np.zeros_like(d)))
+        S = S0*np.sqrt(np.maximum(1. - d/55e3, np.zeros_like(d)))
 
         # Smooth some noise
         noise = np.random.randn(self.nx+1, self.ny+1)
