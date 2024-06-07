@@ -15,13 +15,13 @@ This script is used to generate training data for the emulator.
 model = SpecFO()
 
 # Generate 3000 examples
-N = 3000
+N = 4000
 # Max elevation ranges from 1500 - 4000 m
-S0 = np.random.uniform(1500., 4000., N)
+S0 = np.random.uniform(2000., 4000., N)
 # Random length scale parameter for the bed
-sigmas = np.random.uniform(5., 20., N)
+sigmas = np.random.uniform(2.5, 25., N)
 # This randomizes the location of the ice sheet in the domain
-mid_offsets = 5000.*np.random.randn(N,2)
+mid_offsets = 7500.*np.random.randn(N,2)
 
 plot = False
 data = []
@@ -31,7 +31,7 @@ for i in range(N):
 
     # Generate random ice sheet geometry
     B, H = model.get_geometry(
-        B0 = 1000.,
+        B0 = 1500.,
         S0 = S0[i],
         sigma=sigmas[i],
         mid_offset=mid_offsets[i]

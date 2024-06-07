@@ -95,7 +95,6 @@ class SpecFO(object):
             rho_w=1000.,  
             eps_reg=1e-5,
             Be=464158, # Ice softness
-            #Be=500000.,
             p=1, 
             q=1, 
             beta2=1e-1,
@@ -308,8 +307,8 @@ class SpecFO(object):
         self,
         S0 = 2000, # Ice sheet peak elevation
         B0 = 400, # Scales size of bed bumps
-        sigma = 5.,
-        mid_offset = np.array([0.,0.])
+        sigma = 5., # Length scale
+        mid_offset = np.array([0.,0.]) # Adjusts location of ice sheet center
     ):
 
         xs = np.linspace(0., self.dx, self.nx+1)

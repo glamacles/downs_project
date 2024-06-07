@@ -2,14 +2,22 @@ import os
 import sys
 import matplotlib.pyplot as plt
 os.environ['OMP_NUM_THREADS'] = '1'
-sys.path.append('../model/')
+sys.path.append('model/')
+sys.path.append('emulator/')
 import numpy as np
-
 import firedrake as fd
 from model import SpecFO
+from emulator import FNOEmulator
+import torch
 
-# Model defaults to a 125 x 125 km domain with 1.25 km res
+# FEM Model
 model = SpecFO()
+
+# FNO Emulator
+emulator = FNOEmulator().cuda()
+checkpoint = torch.load('emulator/weights.pt')
+emulator.load_state_dict(checkpoint)
+emulator.eval()
 
 # Generate random ice sheet geometry
 B, H = model.get_geometry(
@@ -21,50 +29,67 @@ B, H = model.get_geometry(
 model.set_field(model.B, B)
 model.set_field(model.H, H)
 model.solver.solve()
+ubar0, ubar1, udef0, udef1, s0, s1 = model.get_velocity()
 
 
-ubar0, ubar1, s0, s1 = model.get_velocity()
+with torch.no_grad():
+    x = np.stack([
+        B, H
+    ])[np.newaxis, :, :, :]
+    x = torch.tensor(x, dtype=torch.float32).cuda()
 
-plt.figure(figsize=(12,8))
-plt.subplot(4, 2, 1)
-plt.title('Bed (m)')
-plt.imshow(B)
-plt.colorbar()
+    y = emulator(x).cpu()
 
-plt.subplot(4, 2, 2)
-plt.title('Surface (m)')
-plt.imshow(B+H)
-plt.colorbar()
+    extent=[0., model.dx/1e3, 0., model.dy/1e3]
+    plt.subplot(3,2,1)
+    plt.title('Bed')
+    plt.imshow(B, extent=extent)
+    plt.xlabel('x (km)')
+    plt.ylabel('y (km)')
+    cbar = plt.colorbar()
+    cbar.set_label('m', rotation=270)
 
-plt.subplot(4,2,3)
-plt.title('X-component Depth Averaged Velocity (m/a)')
-plt.imshow(ubar0)
-plt.colorbar()
 
-plt.subplot(4,2,4)
-plt.title('Y-component Depth Averaged Velocity (m/a)')
-plt.imshow(ubar1)
-plt.colorbar()
+    plt.subplot(3,2,2)
+    plt.title('Surface')
+    plt.imshow(B+H, extent=extent)
+    plt.xlabel('x (km)')
+    plt.ylabel('y (km)')
+    cbar = plt.colorbar()
+    cbar.set_label('m', rotation=270)
 
-plt.subplot(4,2,5)
-plt.title('X-component Deformational Velocity (m/a)')
-plt.imshow(s0)
-plt.colorbar()
+    plt.subplot(3,2,3)
+    plt.title(f'Ubar0 (FEM)')
+    plt.imshow(ubar0,  extent=extent)
+    plt.xlabel('x (km)')
+    plt.ylabel('y (km)')
+    cbar = plt.colorbar()
+    cbar.set_label('m/a', rotation=270)
 
-plt.subplot(4,2,6)
-plt.title('Y-component Deformational Velocity (m/a)')
-plt.imshow(s1)
-plt.colorbar()
 
-plt.subplot(4,2,7)
-plt.title('Depth Avg. Velocity (m/a)')
-plt.imshow(np.sqrt(ubar0**2 + ubar1**2))
-plt.colorbar()
+    plt.subplot(3,2,4)
+    plt.title(f'Ubar0 (FNO)')
+    plt.imshow(y[0,0,:,:],  extent=extent)
+    plt.xlabel('x (km)')
+    plt.ylabel('y (km)')
+    cbar = plt.colorbar()
+    cbar.set_label('m/a', rotation=270)
 
-plt.subplot(4,2,8)
-plt.title('Surface Velocity (m/a)')
-plt.imshow(np.sqrt(s0**2 + s1**2))
-plt.colorbar()
+    plt.subplot(3,2,5)
+    plt.title(f'Ubar1 (FEM)')
+    plt.imshow(ubar1,  extent=extent)
+    plt.xlabel('x (km)')
+    plt.ylabel('y (km)')
+    cbar = plt.colorbar()
+    cbar.set_label('m/a', rotation=270)
 
-plt.tight_layout()
-plt.show()
+    plt.subplot(3,2,6)
+    plt.title(f'Ubar1 (FNO)')
+    plt.imshow(y[0,1,:,:],  extent=extent)
+    plt.xlabel('x (km)')
+    plt.ylabel('y (km)')
+    cbar = plt.colorbar()
+    cbar.set_label('m/a', rotation=270)
+
+    plt.tight_layout()
+    plt.show()

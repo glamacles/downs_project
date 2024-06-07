@@ -166,6 +166,7 @@ cython_debug/
 *.pvd
 *.pt
 *.npy
+*.png 
 
 mod/
 warp_experiments/
@@ -179,3 +180,5 @@ mlruns.db
 **/basic_auth.db
 *.mdlus
 *multirun/
+*runs/
+*logs/
